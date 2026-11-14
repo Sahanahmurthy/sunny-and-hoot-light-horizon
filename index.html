@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sunny & Hoot: Chasing the Light Horizon</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="flash-overlay" class="flash-overlay"></div>
+
+  <!-- Top Navigation -->
+  <header class="top-bar">
+    <div class="brand">
+      <span class="badge-pill">NASA SPACE APPS 2026</span>
+      <h1>🦉 Sunny & Hoot: Chasing the Light Horizon</h1>
+    </div>
+    <div class="header-actions">
+      <button id="btn-how-to" class="btn-secondary">📖 How to Play</button>
+      <button id="btn-nasa-data" class="btn-secondary">📊 NASA Data</button>
+      <button id="btn-suit-locker" class="btn-highlight">🧑‍🚀 Spacesuit Locker (<span id="patch-count">0</span>/3)</button>
+    </div>
+  </header>
+
+  <!-- SCREEN 1: WELCOME & TUTORIAL -->
+  <section id="intro-screen" class="story-container">
+    <div class="story-card hero-card">
+      <div class="scene-art moon-bg">
+        <div class="floating-crew">🧑‍🚀🦉</div>
+        <div class="scene-caption">MISSION BRIEFING • EARTH ORBIT</div>
+      </div>
+
+      <div class="dialogue-box">
+        <div class="speaker-tag">Cadet Sunny & Hoot the Space Owl</div>
+        <p>
+          "Hi Junior Flight Director! I'm <strong>Cadet Sunny</strong>, and this is my co-pilot <strong>Hoot</strong>! We're flying from the Moon to Mars—all the way to catch up with <strong>Voyager 1</strong>!"
+        </p>
+      </div>
+
+      <div class="tutorial-steps">
+        <h3>🎮 How Your Space Adventure Works:</h3>
+        <div class="step-grid">
+          <div class="step-item">
+            <span>1️⃣</span>
+            <strong>Make Smart Trade-Offs</strong>
+            <p>Nothing in space is free! Saving oxygen might use up water or power.</p>
+          </div>
+          <div class="step-item">
+            <span>2️⃣</span>
+            <strong>Play Hands-On Tasks!</strong>
+            <p>Pump water shields, wipe Mars dust, and flip Voyager circuit breakers!</p>
+          </div>
+          <div class="step-item">
+            <span>3️⃣</span>
+            <strong>Decorate Your Suit</strong>
+            <p>Earn real NASA patches and unlock the Golden Voyager 1 Light Beacon!</p>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-start-adventure" class="btn-primary">🚀 START CHAPTER 1: THE MOON</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 2: INTERACTIVE STORY + MINI-GAME ARENA -->
+  <main id="story-screen" class="story-container hidden">
+    <div class="status-ribbon">
+      <div class="chapter-pill" id="chapter-label">Chapter 1: Shackleton Crater (Moon)</div>
+      <div class="mini-stats">
+        <span>💨 Air: <strong id="stat-o2">80%</strong></span>
+        <span>🛡️ Shield: <strong id="stat-shield">70%</strong></span>
+        <span>💪 Health: <strong id="stat-health">80%</strong></span>
+        <span>📡 Delay: <strong id="stat-delay">1.3s</strong></span>
+      </div>
+    </div>
+
+    <div class="story-card">
+      <div id="scene-art" class="scene-art moon-bg">
+        <div id="scene-emoji" class="floating-crew">🧑‍🚀🦉🌕</div>
+        <div id="scene-banner" class="scene-caption">SOL 1 • SHACKLETON CRATER RIM</div>
+      </div>
+
+      <div class="dialogue-box">
+        <div class="speaker-tag" id="speaker-name">🦉 Hoot's Sensor Alert</div>
+        <p id="story-text">Story text loads here...</p>
+      </div>
+
+      <div id="choices-container" class="choices-grid"></div>
+
+      <div id="minigame-box" class="minigame-box hidden">
+        <div class="mg-header">
+          <span class="gold-pill" id="mg-tag">⚡ HANDS-ON MISSION TASK</span>
+          <span class="mg-timer" id="mg-timer">⏱️ 10s</span>
+        </div>
+        <h3 id="mg-title">Task Title</h3>
+        <p id="mg-instructions">Instructions...</p>
+        <div id="mg-arena" class="mg-arena"></div>
+      </div>
+
+      <div id="outcome-box" class="outcome-box hidden">
+        <div class="outcome-badge" id="outcome-title">Result</div>
+        <p id="outcome-text">Outcome explanation...</p>
+        <div class="nasa-fact-box" id="outcome-nasa-note">
+          <strong>🔬 Real NASA Science:</strong> ...
+        </div>
+        <button id="btn-next-scene" class="btn-primary">Next Mission Step ➔</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- SCREEN 3: GOLDEN VOYAGER 1 FINALE -->
+  <section id="finale-screen" class="story-container hidden">
+    <div class="story-card finale-card">
+      <div class="scene-art space-bg">
+        <div class="floating-crew">🛰️✨🦉</div>
+        <div class="scene-caption">INTERSTELLAR SPACE • 1 LIGHT-DAY MILESTONE</div>
+      </div>
+
+      <span class="gold-pill">🏆 ALL 3 CHAPTERS COMPLETE!</span>
+      <h2>Shine Bright for Voyager 1!</h2>
+      <p class="finale-desc">
+        Amazing job, Flight Director! Sunny and Hoot reached the edge of the Solar System where <strong>Voyager 1</strong> crosses <strong>1 Light-Day (16.09 Billion Miles)</strong> from Earth!
+      </p>
+
+      <div class="live-telemetry-box">
+        <div>
+          <span>LIVE DISTANCE FROM EARTH</span>
+          <strong id="voyager-distance">16,092,000,000 miles</strong>
+        </div>
+        <div>
+          <span>ONE-WAY LIGHT DELAY</span>
+          <strong id="voyager-light-time">24h 00m 00s</strong>
+        </div>
+      </div>
+
+      <div class="morse-console">
+        <div id="morse-display" class="morse-display">TAP BELOW TO SEND "V - G - R"</div>
+        <div class="morse-guide">
+          <span><strong>V:</strong> • • • —</span>
+          <span><strong>G:</strong> — — •</span>
+          <span><strong>R:</strong> • — •</span>
+        </div>
+        <button id="btn-shine-vgr" class="btn-gold">🔦 HOOT & FLASH "V - G - R" TO VOYAGER 1</button>
+      </div>
+
+      <div style="display: flex; gap: 0.8rem; margin-top: 1rem;">
+        <button id="btn-finale-suit" class="btn-secondary" style="flex:1;">🧑‍🚀 Admire Decorated Suit</button>
+        <button id="btn-play-again" class="btn-secondary" style="flex:1;">🔄 Play Again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPACESUIT LOCKER MODAL -->
+  <div id="suit-modal" class="modal-overlay hidden">
+    <div class="modal-card wide suit-locker-card">
+      <div class="locker-header">
+        <div>
+          <span class="gold-pill">🎖️ SPACESUIT CUSTOMIZER</span>
+          <h2>Decorate Sunny's Spacesuit!</h2>
+        </div>
+        <div class="color-picker">
+          <span>Suit Color:</span>
+          <button class="color-dot white" data-color="white" title="NASA White"></button>
+          <button class="color-dot orange" data-color="orange" title="Artemis Orange"></button>
+          <button class="color-dot blue" data-color="blue" title="Deep Space Blue"></button>
+        </div>
+      </div>
+
+      <p id="locker-trivia" class="trivia-banner">
+        Tap an earned patch on the left, then tap any glowing spot on Sunny's spacesuit to stick it on!
+      </p>
+
+      <div class="locker-workspace">
+        <div class="patch-tray">
+          <h4>Your Earned Patches</h4>
+          <div id="earned-patches-list" class="earned-list"></div>
+          <small class="tray-hint">Tip: Select a patch, then click a slot on the suit!</small>
+        </div>
+
+        <div class="suit-stage">
+          <div id="spacesuit-figure" class="spacesuit white">
+            <div class="helmet"><div class="visor">🧑‍🚀</div></div>
+            <div class="torso">
+              <button class="patch-slot left-arm" data-slot="leftArm" title="Left Patch">+</button>
+              <button class="patch-slot chest" data-slot="chest" title="Chest Patch">+</button>
+              <button class="patch-slot right-arm" data-slot="rightArm" title="Right Patch">+</button>
+              <div class="chest-pack"></div>
+            </div>
+            <div class="owl-perch">🦉</div>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-close-locker" class="btn-primary">🚀 Back to Mission ➔</button>
+    </div>
+  </div>
+
+  <!-- HOW TO PLAY MODAL -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div id="modal-badge" class="modal-badge">📖</div>
+      <h2 id="modal-title">How to Play</h2>
+      <p id="modal-body">Details here...</p>
+      <button id="btn-modal-close" class="btn-primary">Got It! ➔</button>
+    </div>
+  </div>
+
+  <!-- NASA DATA CITATIONS MODAL -->
+  <div id="data-modal" class="modal-overlay hidden">
+    <div class="modal-card wide">
+      <h2>📊 Real NASA Datasets Behind This Story</h2>
+      <ul class="data-list">
+        <li><strong>NASA DONKI (Space Weather):</strong> Real Coronal Mass Ejection (CME) and solar flare radiation storms drive our lunar shielding trade-offs.</li>
+        <li><strong>NASA LRO (Lunar Reconnaissance Orbiter):</strong> Shackleton Crater sets lunar thermal vs. solar decisions.</li>
+        <li><strong>NASA OSDR (Science Data Repository):</strong> Spaceflight musculoskeletal research shapes our Mars crew fitness and EVA choices.</li>
+        <li><strong>NASA/JPL Voyager Telemetry:</strong> RTG power decay & 1 Light-Day milestone (~38,000 mph).</li>
+      </ul>
+      <button id="btn-close-data" class="btn-primary">Back to Story</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
