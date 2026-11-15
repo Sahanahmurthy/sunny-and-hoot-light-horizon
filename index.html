@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sunny & Hoot: Chasing the Light Horizon</title>
+  <title>Curious Cosmo: Chasing the Light Horizon</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -13,7 +13,7 @@
   <header class="top-bar">
     <div class="brand">
       <span class="badge-pill">NASA SPACE APPS 2026</span>
-      <h1>🦉 Sunny & Hoot: Chasing the Light Horizon</h1>
+      <h1>🦉 Curious Cosmo: Chasing the Light Horizon</h1>
     </div>
     <div class="header-actions">
       <button id="btn-how-to" class="btn-secondary">📖 How to Play</button>
@@ -21,6 +21,11 @@
       <button id="btn-suit-locker" class="btn-highlight">🧑‍🚀 Spacesuit Locker (<span id="patch-count">0</span>/3)</button>
     </div>
   </header>
+
+  <!-- Live NASA Open API Status Banner -->
+  <div id="live-nasa-feed-badge" style="background: rgba(15, 23, 42, 0.92); border-bottom: 1px solid #1e293b; padding: 0.45rem 1rem; text-align: center; font-size: 0.82rem; color: #38bdf8;">
+    🔄 Connecting to NASA DONKI Space Weather &amp; OSDR Telemetry...
+  </div>
 
   <!-- SCREEN 1: WELCOME & TUTORIAL -->
   <section id="intro-screen" class="story-container">
@@ -31,7 +36,7 @@
       </div>
 
       <div class="dialogue-box">
-        <div class="speaker-tag">Cadet Sunny & Hoot the Space Owl</div>
+        <div class="speaker-tag">Cadet Sunny &amp; Hoot the Space Owl</div>
         <p>
           "Hi Junior Flight Director! I'm <strong>Cadet Sunny</strong>, and this is my co-pilot <strong>Hoot</strong>! We're flying from the Moon to Mars—all the way to catch up with <strong>Voyager 1</strong>!"
         </p>
@@ -56,6 +61,19 @@
             <p>Earn real NASA patches and unlock the Golden Voyager 1 Light Beacon!</p>
           </div>
         </div>
+      </div>
+
+      <div style="margin: 1.2rem auto; max-width: 320px; text-align: center;">
+        <label for="player-name-input" style="display: block; color: #38bdf8; font-size: 0.9rem; font-weight: bold; margin-bottom: 0.4rem;">
+          🧑‍🚀 Enter Astronaut Call Sign / Name:
+        </label>
+        <input 
+          type="text" 
+          id="player-name-input" 
+          placeholder="e.g., Commander Sunny" 
+          maxlength="30"
+          style="width: 100%; padding: 0.65rem 1rem; border-radius: 8px; border: 2px solid #38bdf8; background: #0f172a; color: #f8fafc; font-size: 1rem; text-align: center; outline: none;"
+        />
       </div>
 
       <button id="btn-start-adventure" class="btn-primary">🚀 START CHAPTER 1: THE MOON</button>
@@ -108,7 +126,7 @@
     </div>
   </main>
 
-  <!-- SCREEN 3: GOLDEN VOYAGER 1 FINALE -->
+  <!-- SCREEN 3: FINALE & VOYAGER 1 LIGHT HORIZON -->
   <section id="finale-screen" class="story-container hidden">
     <div class="story-card finale-card">
       <div class="scene-art space-bg">
@@ -117,7 +135,7 @@
       </div>
 
       <span class="gold-pill">🏆 ALL 3 CHAPTERS COMPLETE!</span>
-      <h2>Shine Bright for Voyager 1!</h2>
+      <h2>🎉 Mission Accomplished, <span id="finale-player-name" style="color: #facc15;">Commander</span>!</h2>
       <p class="finale-desc">
         Amazing job, Flight Director! Sunny and Hoot reached the edge of the Solar System where <strong>Voyager 1</strong> crosses <strong>1 Light-Day (16.09 Billion Miles)</strong> from Earth!
       </p>
@@ -140,18 +158,37 @@
           <span><strong>G:</strong> — — •</span>
           <span><strong>R:</strong> • — •</span>
         </div>
-        <button id="btn-shine-vgr" class="btn-gold">🔦 HOOT & FLASH "V - G - R" TO VOYAGER 1</button>
+        <button id="btn-shine-vgr" class="btn-gold">🔦 HOOT &amp; FLASH "V - G - R" TO VOYAGER 1</button>
       </div>
 
-      <div style="display: flex; gap: 0.8rem; margin-top: 1rem;">
+      <!-- Flight Director Engineering Debrief Card -->
+      <div id="engineering-debrief" style="background: rgba(15, 23, 42, 0.85); border: 1px solid #38bdf8; border-radius: 10px; padding: 1rem; margin: 1rem 0; text-align: left; font-size: 0.88rem; color: #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.4rem;">
+          <strong style="color: #38bdf8;">📊 FLIGHT DIRECTOR ENGINEERING DEBRIEF</strong>
+          <span id="debrief-rank" style="background: #eab308; color: #0f172a; font-weight: bold; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.8rem;">SCORE: 100/100</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; text-align: center; margin-bottom: 0.7rem; background: #0f172a; padding: 0.5rem; border-radius: 8px;">
+          <div>💨 Air: <strong id="debrief-o2" style="color: #4ade80;">80%</strong></div>
+          <div>🛡️ Shield: <strong id="debrief-shield" style="color: #4ade80;">70%</strong></div>
+          <div>💪 Health: <strong id="debrief-health" style="color: #4ade80;">80%</strong></div>
+        </div>
+        <ul style="margin: 0; padding-left: 1.2rem; color: #cbd5e1; line-height: 1.5;">
+          <li><strong>Lunar Shielding (NASA DONKI / LRO):</strong> Attenuated <span id="debrief-flare">X1.2</span> solar storm using hydrogen-rich water walls ($D = D_0 e^{-\mu x}$).</li>
+          <li><strong>Mars EVA Fitness (NASA OSDR OSD-48):</strong> Managed microgravity musculoskeletal stamina &amp; Jezero solar output.</li>
+          <li><strong>Interstellar Relay (JPL DSN):</strong> Balanced Voyager 1 systems within its <strong id="debrief-rtg">215W</strong> Pu-238 RTG decay limit.</li>
+        </ul>
+      </div>
+
+      <button id="btn-download-cert" onclick="downloadMissionCertificate()" style="width: 100%; background: #eab308; color: #0f172a; font-weight: bold; padding: 0.85rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; margin-top: 0.5rem;">
+        🏅 Download Official Mission Certificate (PDF)
+      </button>
+
+      <div style="display: flex; gap: 0.8rem; margin-top: 0.8rem;">
         <button id="btn-finale-suit" class="btn-secondary" style="flex:1;">🧑‍🚀 Admire Decorated Suit</button>
         <button id="btn-play-again" class="btn-secondary" style="flex:1;">🔄 Play Again</button>
       </div>
     </div>
   </section>
-  <button id="btn-download-cert" onclick="downloadMissionCertificate()" style="background: #eab308; color: #0f172a; font-weight: bold; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; margin-top: 1rem;">
-  🏅 Download Official Mission Certificate (PDF)
-</button>
 
   <!-- SPACESUIT LOCKER MODAL -->
   <div id="suit-modal" class="modal-overlay hidden">
@@ -211,17 +248,18 @@
   <!-- NASA DATA CITATIONS MODAL -->
   <div id="data-modal" class="modal-overlay hidden">
     <div class="modal-card wide">
-      <h2>📊 Real NASA Datasets Behind This Story</h2>
+      <h2>📊 Real NASA Datasets Behind Curious Cosmo</h2>
       <ul class="data-list">
         <li><strong>NASA DONKI (Space Weather):</strong> Real Coronal Mass Ejection (CME) and solar flare radiation storms drive our lunar shielding trade-offs.</li>
         <li><strong>NASA LRO (Lunar Reconnaissance Orbiter):</strong> Shackleton Crater sets lunar thermal vs. solar decisions.</li>
-        <li><strong>NASA OSDR (Science Data Repository):</strong> Spaceflight musculoskeletal research shapes our Mars crew fitness and EVA choices.</li>
-        <li><strong>NASA/JPL Voyager Telemetry:</strong> RTG power decay & 1 Light-Day milestone (~38,000 mph).</li>
+        <li><strong>NASA OSDR (Study OSD-48):</strong> Spaceflight musculoskeletal research shapes our Mars crew fitness and EVA stamina mechanics.</li>
+        <li><strong>NASA/JPL Voyager Telemetry:</strong> RTG power decay &amp; 1 Light-Day milestone (~38,000 mph).</li>
       </ul>
       <button id="btn-close-data" class="btn-primary">Back to Story</button>
     </div>
   </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

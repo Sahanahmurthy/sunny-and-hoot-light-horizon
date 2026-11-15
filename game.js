@@ -1,51 +1,51 @@
-// === NASA OPEN API & ENGINEERING PHYSICS ENGINE (BY OLAF) ===
-const NASA_API_KEY = "rMLhD9jpcPWhMq9DDm7QJkL7BMWrMRDkf7qP7bmF"; 
+// === NASA OPEN API & ENGINEERING PHYSICS ENGINE (CURIOUS COSMO) ===
+const NASA_API_KEY = "rMLhD9jpcPWhMq9DDm7QJkL7BMWrMRDkf7qP7bmF";
 
 const NASA_TELEMETRY = {
   donki: { flareClass: "X1.2", peakTime: "2026-11-12T14:22Z", source: "NASA DONKI Feed" },
   radlab: { baselineDoseMicroGyDay: 485.0, waterAttenuationCoeff: 0.042 },
   osdr: { title: "Spaceflight Musculoskeletal Adaptation", studyId: "OSD-48" }
 };
+
 // Real Radiation Attenuation Calculation: D = D0 * e^(-mu * x)
 function calculateShieldedDose(waterThicknessCm) {
-  const d0 = NASA_TELEMETRY.radlab.baselineDoseMicroGyDay; // 485.0 µGy/day baseline
-  const mu = NASA_TELEMETRY.radlab.waterAttenuationCoeff;   // 0.042 absorption coefficient
+  const d0 = NASA_TELEMETRY.radlab.baselineDoseMicroGyDay;
+  const mu = NASA_TELEMETRY.radlab.waterAttenuationCoeff;
   const attenuatedDose = d0 * Math.exp(-mu * waterThicknessCm);
   return Math.round(attenuatedDose * 10) / 10;
 }
+
 // Voyager 1 Plutonium-238 Radioactive Decay: P(t) = P0 * e^(-lambda * t)
 function calculateVoyagerPower() {
-  const p0 = 470.0;          // Initial power at launch in 1977 (Watts)
-  const halfLife = 87.7;     // Pu-238 half-life in years
+  const p0 = 470.0;      // Initial power at launch in 1977 (Watts)
+  const halfLife = 87.7; // Pu-238 half-life in years
   const lambda = Math.LN2 / halfLife;
-  
+
   const launchYear = 1977;
-  const currentYear = new Date().getFullYear(); // 2026
+  const currentYear = new Date().getFullYear();
   const elapsedYears = currentYear - launchYear;
-  
+
   const currentPower = p0 * Math.exp(-lambda * elapsedYears);
-  return Math.round(currentPower * 10) / 10; // Returns ~214.6W current output
+  return Math.round(currentPower * 10) / 10;
 }
+
 // Life Support Safeguard & Emergency Abort Check
 function checkLifeSupportSafeguards() {
-  const res = state.resources;
-  
-  if (res.o2 <= 0 || res.shield <= 0 || res.power <= 0) {
-    // Clear any active mini-game timers
+  if (state.o2 <= 0 || state.shield <= 0 || state.health <= 0) {
     if (state.activeTimer) clearInterval(state.activeTimer);
-    
-    // Trigger Emergency Abort Screen
-    const arena = document.getElementById("mg-arena") || document.body;
-    arena.innerHTML = `
+
+    const container = document.getElementById("choices-container") || document.body;
+    container.classList.remove("hidden");
+    container.innerHTML = `
       <div style="background: rgba(239, 68, 68, 0.15); border: 2px solid #ef4444; padding: 1.5rem; border-radius: 12px; text-align: center; color: #f87171;">
         <h2 style="margin-bottom: 0.5rem;">🚨 MISSION EMERGENCY ABORT 🚨</h2>
         <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 1rem;">
           Critical life support failure detected! Habitat systems could not sustain parameters against deep space telemetry extremes.
         </p>
         <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 1.2rem;">
-          Final Status — Oxygen: ${res.o2}% | Shielding: ${res.shield}% | Power: ${res.power}%
+          Final Status — Air (O₂): ${state.o2}% | Shielding: ${state.shield}% | Crew Health: ${state.health}%
         </div>
-        <button onclick="location.reload()" style="background: #ef4444; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        <button onclick="startStory()" style="background: #ef4444; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
           🔄 RESTART MISSION
         </button>
       </div>
@@ -54,32 +54,56 @@ function checkLifeSupportSafeguards() {
   }
   return false;
 }
-// Inside your choice click handler:
-state.resources.o2 += choice.effects.o2 || 0;
-state.resources.shield += choice.effects.shield || 0;
-state.resources.power += choice.effects.power || 0;
 
-// 🚨 Add this right here:
-if (checkLifeSupportSafeguards()) {
-  return; // Stops the game and shows the emergency abort screen if any resource hits 0
-}
 async function syncRealNasaApis() {
+  const statusEl = document.getElementById("live-nasa-feed-badge");
+  let donkiLive = false;
+  let osdrLive = false;
+
+  // 1. Live NASA DONKI Solar Flare API (30-day window)
   try {
     const end = new Date().toISOString().split("T")[0];
-    const start = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
+    const start = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
     const flrUrl = `https://api.nasa.gov/DONKI/FLR?startDate=${start}&endDate=${end}&api_key=${NASA_API_KEY}`;
-    
+
     const flrRes = await fetch(flrUrl);
-    if (!flrRes.ok) return; // Silently exit if the endpoint returns a 404 or limit error
-    
-    const flares = await flrRes.json();
-    if (Array.isArray(flares) && flares.length > 0) {
-      const latest = flares[flares.length - 1];
-      NASA_TELEMETRY.donki.flareClass = latest.classType || "M5.4";
-      NASA_TELEMETRY.donki.peakTime = latest.peakTime || end;
+    if (flrRes.ok) {
+      const flares = await flrRes.json();
+      if (Array.isArray(flares) && flares.length > 0) {
+        const latest = flares[flares.length - 1];
+        NASA_TELEMETRY.donki.flareClass = latest.classType || "M5.4";
+        NASA_TELEMETRY.donki.peakTime = (latest.peakTime || end).replace("T", " ").replace("Z", " UTC");
+        donkiLive = true;
+      }
     }
   } catch (err) {
-    console.warn("DONKI offline fallback active.");
+    console.warn("DONKI fallback telemetry active:", err);
+  }
+
+  // 2. Live NASA OSDR Biological Study Metadata API (Study OSD-48)
+  try {
+    const osdrUrl = "https://osdr.nasa.gov/osdr/data/osd/meta/48";
+    const osdrRes = await fetch(osdrUrl);
+    if (osdrRes.ok) {
+      const osdrData = await osdrRes.json();
+      const studyMeta = osdrData?.study?.["OSD-48"]?.studies?.[0];
+      if (studyMeta?.title) {
+        NASA_TELEMETRY.osdr.title = studyMeta.title;
+        osdrLive = true;
+      }
+    }
+  } catch (err) {
+    console.warn("OSDR fallback metadata active:", err);
+  }
+
+  // Update Top Live Telemetry Banner
+  if (statusEl) {
+    statusEl.innerHTML = `
+      ${donkiLive ? "🟢" : "🟡"} <strong>NASA DONKI:</strong> Flare ${NASA_TELEMETRY.donki.flareClass} &nbsp;|&nbsp;
+      ${osdrLive ? "🟢" : "🟡"} <strong>NASA OSDR (${NASA_TELEMETRY.osdr.studyId}):</strong> Musculoskeletal Telemetry Linked &nbsp;|&nbsp;
+      🛰️ <strong>JPL DSN:</strong> Voyager 1 RTG Active
+    `;
+    statusEl.style.color = "#4ade80";
   }
 }
 
@@ -110,7 +134,7 @@ const STORY_SCENES = [
         nasaFact: "Every liter of water mined from Shackleton Crater's ice is split between drinking, oxygen, farming, and radiation shielding."
       }
     ],
-    unlockPatch: { id: "artemis", icon: "🌓", name: "NASA Artemis Patch", trivia: "🎉 You shielded the base from the solar storm and earned the Artemis Patch!" }
+    unlockPatch: { id: "artemis", icon: "🌓", image: "assets/patch-artemis.png", name: "NASA Artemis Patch", trivia: "🎉 You shielded the base from the solar storm and earned the Artemis Patch!" }
   },
   {
     chapter: "Chapter 2: Mars Outpost (Jezero Crater)",
@@ -135,7 +159,7 @@ const STORY_SCENES = [
         nasaFact: "Perseverance's MOXIE proved we can manufacture oxygen straight from Mars's 95% CO₂ atmosphere!"
       }
     ],
-    unlockPatch: { id: "perseverance", icon: "🛸", name: "Mars Perseverance Patch", trivia: "🎉 Solar array clean! You earned the Mars Perseverance Patch!" }
+    unlockPatch: { id: "perseverance", icon: "🛸", image: "assets/patch-mars.png", name: "Mars Perseverance Patch", trivia: "🎉 Solar array clean! You earned the Mars Perseverance Patch!" }
   },
   {
     chapter: "Chapter 3: Interstellar Relay (Voyager 1)",
@@ -144,7 +168,7 @@ const STORY_SCENES = [
     caption: "CHAPTER 3 • DEEP SPACE • DELAY: 24 HOURS (1 LIGHT-DAY)",
     delay: "24 hrs",
     speaker: "🦉 Hoot's Deep-Space Telemetry",
-    story: "We caught up with Voyager 1—16.09 billion miles away! Its nuclear battery dropped to 215W. Flip off non-essential instruments before the fuse blows!",
+    story: "We caught up with Voyager 1—16.09 billion miles away! Its nuclear battery dropped to ~215W. Flip off non-essential instruments before the fuse blows!",
     minigameType: "voyagerBreakers",
     choices: [
       {
@@ -160,7 +184,7 @@ const STORY_SCENES = [
         nasaFact: "At 1 Light-Day away, a command from Earth takes 24 hours just to reach Voyager!"
       }
     ],
-    unlockPatch: { id: "voyager", icon: "📀", name: "Voyager Golden Record", trivia: "🎉 Voyager 1 saved across 1 Light-Day! Final patch unlocked!" }
+    unlockPatch: { id: "voyager", icon: "📀", image: "assets/patch-voyager.png", name: "Voyager Golden Record", trivia: "🎉 Voyager 1 saved across 1 Light-Day! Final patch unlocked!" }
   }
 ];
 
@@ -168,7 +192,8 @@ let state = {
   sceneIdx: 0, o2: 80, shield: 70, health: 80,
   unlockedPatches: [], selectedPatchIcon: null,
   suitSlots: { leftArm: null, chest: null, rightArm: null },
-  suitColor: "white", pendingNextStep: null, activeTimer: null
+  suitColor: "white", pendingNextStep: null, activeTimer: null,
+  playerName: ""
 };
 
 function initGame() {
@@ -180,15 +205,23 @@ function initGame() {
 
 function startStory() {
   clearInterval(state.activeTimer);
+
+  const nameInput = document.getElementById("player-name-input");
+  const enteredName = nameInput && nameInput.value.trim() !== ""
+    ? nameInput.value.trim()
+    : "Commander Sunny";
+
   state = {
     sceneIdx: 0, o2: 80, shield: 70, health: 80,
     unlockedPatches: [], selectedPatchIcon: null,
     suitSlots: { leftArm: null, chest: null, rightArm: null },
-    suitColor: "white", pendingNextStep: null, activeTimer: null
+    suitColor: "white", pendingNextStep: null, activeTimer: null,
+    playerName: enteredName
   };
-  document.getElementById("intro-screen").classList.add("hidden");
-  document.getElementById("finale-screen").classList.add("hidden");
-  document.getElementById("story-screen").classList.remove("hidden");
+
+  document.getElementById("intro-screen")?.classList.add("hidden");
+  document.getElementById("finale-screen")?.classList.add("hidden");
+  document.getElementById("story-screen")?.classList.remove("hidden");
   renderScene();
 }
 
@@ -199,14 +232,25 @@ function renderScene() {
   updateStatsUI();
 
   const art = document.getElementById("scene-art");
-  art.className = `scene-art ${scene.bgClass}`;
+  if (art) art.className = `scene-art ${scene.bgClass}`;
   document.getElementById("scene-emoji").textContent = scene.emoji;
   document.getElementById("scene-banner").textContent = scene.caption;
   document.getElementById("speaker-name").textContent = scene.speaker;
-  document.getElementById("story-text").textContent = scene.story;
 
-  document.getElementById("minigame-box").classList.add("hidden");
-  document.getElementById("outcome-box").classList.add("hidden");
+  const storyEl = document.getElementById("story-text");
+  if (state.sceneIdx === 0) {
+    storyEl.innerHTML = `HOOT-HOOT!! We just landed at <strong>Shackleton Crater (NASA LRO Data)</strong>, and NASA's live <strong>DONKI</strong> satellite feed detected a <strong>Class ${NASA_TELEMETRY.donki.flareClass} Solar Flare</strong>! How do we use our lunar ice reserves?`;
+  } else if (state.sceneIdx === 1) {
+    storyEl.innerHTML = `Touchdown on Mars! Signals take <strong>14 MINUTES</strong> to arrive, and a dust storm covered our solar panels. According to <strong>NASA OSDR Study ${NASA_TELEMETRY.osdr.studyId}</strong> (<em>"${NASA_TELEMETRY.osdr.title}"</em>), microgravity weakens muscles fast—did Sunny complete today's resistive workout?`;
+  } else if (state.sceneIdx === 2) {
+    const liveWatts = calculateVoyagerPower();
+    storyEl.innerHTML = `We caught up with <strong>Voyager 1</strong>—over 16.09 billion miles away! Live <strong>NASA/JPL RTG decay telemetry</strong> shows its nuclear battery is down to <strong>${liveWatts}W</strong>. Flip off non-essential instruments before the fuse blows!`;
+  } else {
+    storyEl.textContent = scene.story;
+  }
+
+  document.getElementById("minigame-box")?.classList.add("hidden");
+  document.getElementById("outcome-box")?.classList.add("hidden");
 
   const choicesEl = document.getElementById("choices-container");
   choicesEl.classList.remove("hidden");
@@ -222,24 +266,28 @@ function renderScene() {
 }
 
 function launchMiniGame(scene, choice) {
-  state.o2 = clamp(state.o2 + choice.effects.o2);
-  state.shield = clamp(state.shield + choice.effects.shield);
-  state.health = clamp(state.health + choice.effects.health);
+  state.o2 = clamp(state.o2 + (choice.effects.o2 || 0));
+  state.shield = clamp(state.shield + (choice.effects.shield || 0));
+  state.health = clamp(state.health + (choice.effects.health || 0));
   updateStatsUI();
 
-  document.getElementById("choices-container").classList.add("hidden");
-  document.getElementById("minigame-box").classList.remove("hidden");
+  if (checkLifeSupportSafeguards()) {
+    return;
+  }
+
+  document.getElementById("choices-container")?.classList.add("hidden");
+  document.getElementById("minigame-box")?.classList.remove("hidden");
 
   if (scene.minigameType === "shieldPump") runShieldPumpGame(choice);
   else if (scene.minigameType === "dustWiper") runDustWiperGame(choice);
-  else if (scene.minigameType === "voyagerBreakers") runVoyagerBreakersGame(choice);
+  else if (scene.minigameType === "voyagerBreakers") runCircuitBreakerGame(choice);
 }
 
 function runShieldPumpGame(choice) {
   document.getElementById("mg-title").textContent = "🛡️ Pump Water Into Radiation Walls!";
   document.getElementById("mg-instructions").textContent = "Rapidly tap the button below to pump water-ice and drop radiation levels to safe limits!";
   const arena = document.getElementById("mg-arena");
-  
+
   let waterCm = 5;
   let timeLeft = 10;
   document.getElementById("mg-timer").textContent = `⏱️ ${timeLeft}s`;
@@ -253,13 +301,14 @@ function runShieldPumpGame(choice) {
   `;
 
   document.getElementById("btn-pump-water").onclick = () => {
+    playSpaceSfx("pump");
     waterCm = Math.min(65, waterCm + (choice.pumpBoost || 12));
     const currentDose = calculateShieldedDose(waterCm);
     const fillPercent = Math.round((waterCm / 65) * 100);
 
     document.getElementById("pump-fill").style.width = `${fillPercent}%`;
     document.getElementById("pump-fill").textContent = `${waterCm} cm`;
-    
+
     const dosimeterEl = document.getElementById("dosimeter-val");
     if (dosimeterEl) {
       dosimeterEl.textContent = `${currentDose} µGy/day`;
@@ -284,11 +333,19 @@ function runShieldPumpGame(choice) {
 }
 
 function runDustWiperGame(choice) {
+  const didWorkout = choice.effects.health > 0;
   document.getElementById("mg-title").textContent = "🧹 Wipe Martian Dust Off Solar Array!";
-  document.getElementById("mg-instructions").textContent = "Click or hover over all 8 dusty red tiles to clean them!";
+  document.getElementById("mg-instructions").textContent = didWorkout
+    ? "OSDR Workout Complete! High EVA muscle stamina—hover or click to rapidly clear all 8 panels!"
+    : "Skipped OSDR Workout! Muscle fatigue active—click each dusty tile twice to scrub it clean!";
+
   const arena = document.getElementById("mg-arena");
   let cleaned = 0, timeLeft = 12;
   document.getElementById("mg-timer").textContent = `⏱️ ${timeLeft}s`;
+
+  const statusBanner = document.createElement("div");
+  statusBanner.style.cssText = "margin-bottom: 0.8rem; font-size: 0.9rem; color: #38bdf8;";
+  statusBanner.innerHTML = `🧬 <strong>NASA OSDR (${NASA_TELEMETRY.osdr.studyId}) EVA Stamina:</strong> <strong style="color: ${didWorkout ? "#4ade80" : "#f87171"};">${didWorkout ? "100% Optimal (1-Swipe Clean)" : "65% Fatigued (2-Tap Scrub Required)"}</strong>`;
 
   const grid = document.createElement("div");
   grid.className = "solar-grid";
@@ -296,21 +353,30 @@ function runDustWiperGame(choice) {
     const tile = document.createElement("button");
     tile.className = "solar-tile dusty";
     tile.textContent = "🌫️";
+    let tapsNeeded = didWorkout ? 1 : 2;
+
     const clean = () => {
       if (tile.classList.contains("clean")) return;
+      playSpaceSfx("pump");
+      tapsNeeded--;
+      if (tapsNeeded > 0) {
+        tile.textContent = "💨";
+        return;
+      }
       tile.className = "solar-tile clean";
       tile.textContent = "☀️";
       cleaned++;
       if (cleaned >= 8) {
         clearInterval(state.activeTimer);
-        finishMiniGame("Panels 100% Clean!", "Sunny brushed off the dust, restoring full solar power!", choice.nasaFact);
+        finishMiniGame("Panels 100% Clean!", "Sunny brushed off the Martian dust, restoring full solar array output!", choice.nasaFact);
       }
     };
     tile.onclick = clean;
-    tile.onmouseenter = clean;
+    if (didWorkout) tile.onmouseenter = clean;
     grid.appendChild(tile);
   }
   arena.innerHTML = "";
+  arena.appendChild(statusBanner);
   arena.appendChild(grid);
 
   state.activeTimer = setInterval(() => {
@@ -327,9 +393,10 @@ function runCircuitBreakerGame(choice) {
   document.getElementById("mg-title").textContent = "🛰️ Voyager 1 Power Rerouting & RTG Telemetry";
   document.getElementById("mg-instructions").textContent = "Plutonium-238 decay is dropping available wattage. Re-route circuit breakers to keep the Golden Record beacon alive!";
   const arena = document.getElementById("mg-arena");
+  document.getElementById("mg-timer").textContent = "⚡ RTG";
 
-  const livePower = calculateVoyagerPower(); // Dynamically computes ~214.6W based on half-life decay
-  let systemLoad = 180.0; // Initial active load in Watts
+  const livePower = calculateVoyagerPower();
+  let systemLoad = 235.0;
 
   arena.innerHTML = `
     <div style="margin-bottom: 0.8rem; font-size: 0.95rem; color: #38bdf8;">
@@ -349,17 +416,25 @@ function runCircuitBreakerGame(choice) {
   let heaterActive = true;
   let scienceActive = true;
 
+  const updateLoadUI = () => {
+    const loadEl = document.getElementById("load-val");
+    loadEl.textContent = `${systemLoad} W`;
+    loadEl.style.color = systemLoad <= livePower ? "#4ade80" : "#f87171";
+  };
+
   document.getElementById("btn-toggle-heater").onclick = () => {
+    playSpaceSfx("pump");
     heaterActive = !heaterActive;
     systemLoad += heaterActive ? 30 : -30;
-    document.getElementById("load-val").textContent = `${systemLoad} W`;
+    updateLoadUI();
     document.getElementById("btn-toggle-heater").style.background = heaterActive ? "#334155" : "#1e293b";
   };
 
   document.getElementById("btn-toggle-science").onclick = () => {
+    playSpaceSfx("pump");
     scienceActive = !scienceActive;
     systemLoad += scienceActive ? 25 : -25;
-    document.getElementById("load-val").textContent = `${systemLoad} W`;
+    updateLoadUI();
     document.getElementById("btn-toggle-science").style.background = scienceActive ? "#334155" : "#1e293b";
   };
 
@@ -368,7 +443,7 @@ function runCircuitBreakerGame(choice) {
       finishMiniGame(
         "Voyager 1 Light Horizon Reached!",
         `Successfully balanced systems at ${systemLoad}W against the decaying ${livePower}W Plutonium RTG limit!`,
-        choice.nasaFact || "Voyager 1 relies on its diminishing RTG power source to communicate from over 24 billion kilometers away."
+        choice.nasaFact || "Voyager 1 relies on its diminishing RTG power source to communicate from over 16 billion miles away."
       );
     } else {
       alert("⚠️ Power overload! System load exceeds available RTG wattage. Turn off auxiliary instruments!");
@@ -377,9 +452,10 @@ function runCircuitBreakerGame(choice) {
 }
 
 function finishMiniGame(badgeText, outcomeText, nasaFact) {
-  document.getElementById("minigame-box").classList.add("hidden");
+  playSpaceSfx("win");
+  document.getElementById("minigame-box")?.classList.add("hidden");
   const outcomeBox = document.getElementById("outcome-box");
-  outcomeBox.classList.remove("hidden");
+  outcomeBox?.classList.remove("hidden");
   document.getElementById("outcome-title").textContent = badgeText;
   document.getElementById("outcome-text").textContent = outcomeText;
   document.getElementById("outcome-nasa-note").innerHTML = `<strong>🔬 Real NASA Science:</strong> ${nasaFact}`;
@@ -391,7 +467,7 @@ function advanceStory() {
     const p = currentScene.unlockPatch;
     if (!state.unlockedPatches.some(item => item.id === p.id)) {
       state.unlockedPatches.push(p);
-      state.selectedPatchIcon = p.icon;
+      state.selectedPatchIcon = p.image;
       updateStatsUI();
     }
     openSuitLocker(p.trivia, goToNextSceneOrFinale);
@@ -405,8 +481,25 @@ function goToNextSceneOrFinale() {
     state.sceneIdx++;
     renderScene();
   } else {
-    document.getElementById("story-screen").classList.add("hidden");
-    document.getElementById("finale-screen").classList.remove("hidden");
+    const finaleNameEl = document.getElementById("finale-player-name");
+    if (finaleNameEl) {
+      finaleNameEl.textContent = state.playerName || "Commander Sunny";
+    }
+
+    const avgSurvival = Math.round((state.o2 + state.shield + state.health) / 3);
+    const patchBonus = state.unlockedPatches.length * 5;
+    const totalScore = Math.min(100, avgSurvival + patchBonus);
+
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl("debrief-rank", `SCORE: ${totalScore}/100`);
+    setEl("debrief-o2", `${state.o2}%`);
+    setEl("debrief-shield", `${state.shield}%`);
+    setEl("debrief-health", `${state.health}%`);
+    setEl("debrief-flare", NASA_TELEMETRY.donki.flareClass);
+    setEl("debrief-rtg", `${calculateVoyagerPower()}W`);
+
+    document.getElementById("story-screen")?.classList.add("hidden");
+    document.getElementById("finale-screen")?.classList.remove("hidden");
   }
 }
 
@@ -417,14 +510,14 @@ function updateStatsUI() {
   document.getElementById("patch-count").textContent = state.unlockedPatches.length;
 }
 
-function clamp(val) { return Math.max(10, Math.min(100, val)); }
+function clamp(val) { return Math.max(0, Math.min(100, val)); }
 
 function openSuitLocker(customMessage, onCloseCallback) {
   state.pendingNextStep = onCloseCallback || null;
   document.getElementById("locker-trivia").textContent = customMessage || "Tap a patch, then click any spot on Sunny's spacesuit!";
   renderLockerPatches();
   renderSuitAppearance();
-  document.getElementById("suit-modal").classList.remove("hidden");
+  document.getElementById("suit-modal")?.classList.remove("hidden");
 }
 
 function renderLockerPatches() {
@@ -436,22 +529,41 @@ function renderLockerPatches() {
   }
   state.unlockedPatches.forEach(patch => {
     const btn = document.createElement("button");
-    const isSelected = state.selectedPatchIcon === patch.icon;
+    const isSelected = state.selectedPatchIcon === patch.image;
     btn.className = `tray-patch-btn ${isSelected ? "selected" : ""}`;
-    btn.innerHTML = `<span class="tray-patch-icon">${patch.icon}</span><div><strong>${patch.name}</strong><br/><small style="color:#fbbf24;">${isSelected ? "✓ Selected" : "Click to select"}</small></div>`;
-    btn.onclick = () => { state.selectedPatchIcon = patch.icon; renderLockerPatches(); };
+    btn.innerHTML = `
+      <img src="${patch.image}" alt="${patch.name}" style="width:38px; height:38px; object-fit:contain; border-radius:6px;" />
+      <div><strong>${patch.name}</strong><br/><small style="color:#fbbf24;">${isSelected ? "✓ Selected" : "Click to select"}</small></div>
+    `;
+    btn.onclick = () => { state.selectedPatchIcon = patch.image; renderLockerPatches(); };
     listEl.appendChild(btn);
   });
 }
 
 function renderSuitAppearance() {
   const suitEl = document.getElementById("spacesuit-figure");
-  suitEl.className = `spacesuit ${state.suitColor}`;
+  if (suitEl) {
+    suitEl.className = `spacesuit ${state.suitColor}`;
+    if (state.suitColor === "orange") {
+      suitEl.style.backgroundImage = `url("assets/suit-orange.png")`;
+      suitEl.style.backgroundSize = "contain";
+      suitEl.style.backgroundRepeat = "no-repeat";
+      suitEl.style.backgroundPosition = "center";
+    } else if (state.suitColor === "white") {
+      suitEl.style.backgroundImage = `url("assets/suit-white.png")`;
+      suitEl.style.backgroundSize = "contain";
+      suitEl.style.backgroundRepeat = "no-repeat";
+      suitEl.style.backgroundPosition = "center";
+    } else {
+      suitEl.style.backgroundImage = "none";
+    }
+  }
+
   document.querySelectorAll(".patch-slot").forEach(slotBtn => {
     const slotKey = slotBtn.dataset.slot;
-    const placedIcon = state.suitSlots[slotKey];
-    if (placedIcon) {
-      slotBtn.textContent = placedIcon;
+    const placedImg = state.suitSlots[slotKey];
+    if (placedImg) {
+      slotBtn.innerHTML = `<img src="${placedImg}" style="width:32px; height:32px; object-fit:contain;" />`;
       slotBtn.classList.add("filled");
     } else {
       slotBtn.textContent = "+";
@@ -495,10 +607,10 @@ async function transmitVGRMorse() {
   for (const step of sequence) {
     if (step.pause) { await sleep(step.pause); continue; }
     display.textContent = `🦉 HOOTING: ${step.letter}  [ ${step.sym} ]`;
-    overlay.classList.add("active");
+    overlay?.classList.add("active");
     playHootBeep(audioCtx, step.dur);
     await sleep(step.dur);
-    overlay.classList.remove("active");
+    overlay?.classList.remove("active");
     await sleep(140);
   }
   display.textContent = "✨ V - G - R SIGNAL SENT TO VOYAGER 1! ✨";
@@ -517,32 +629,70 @@ function playHootBeep(ctx, durationMs) {
   osc.stop(ctx.currentTime + durationMs / 1000);
 }
 
+function playSpaceSfx(type) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    if (type === "pump") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(320, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(540, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.09);
+    } else if (type === "win") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.16, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.45);
+    }
+  } catch (e) {}
+}
+
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 function showModal(badge, title, body) {
   document.getElementById("modal-badge").textContent = badge;
   document.getElementById("modal-title").textContent = title;
   document.getElementById("modal-body").textContent = body;
-  document.getElementById("modal-overlay").classList.remove("hidden");
+  document.getElementById("modal-overlay")?.classList.remove("hidden");
 }
 
 function bindButtons() {
-  document.getElementById("btn-start-adventure").onclick = startStory;
-  document.getElementById("btn-next-scene").onclick = advanceStory;
-  document.getElementById("btn-shine-vgr").onclick = transmitVGRMorse;
-  document.getElementById("btn-play-again").onclick = startStory;
+  const bind = (id, fn) => {
+    const el = document.getElementById(id);
+    if (el) el.onclick = fn;
+  };
 
-  document.getElementById("btn-suit-locker").onclick = () => openSuitLocker(null, null);
-  document.getElementById("btn-finale-suit").onclick = () => openSuitLocker("Fully decorated mission spacesuit!", null);
+  bind("btn-start-adventure", startStory);
+  bind("btn-next-scene", advanceStory);
+  bind("btn-shine-vgr", transmitVGRMorse);
+  bind("btn-play-again", startStory);
 
-  document.getElementById("btn-close-locker").onclick = () => {
-    document.getElementById("suit-modal").classList.add("hidden");
+  bind("btn-suit-locker", () => openSuitLocker(null, null));
+  bind("btn-finale-suit", () => openSuitLocker("Fully decorated mission spacesuit!", null));
+
+  bind("btn-close-locker", () => {
+    document.getElementById("suit-modal")?.classList.add("hidden");
     if (state.pendingNextStep) {
       const next = state.pendingNextStep;
       state.pendingNextStep = null;
       next();
     }
-  };
+  });
 
   document.querySelectorAll(".color-dot").forEach(dot => {
     dot.onclick = () => { state.suitColor = dot.dataset.color; renderSuitAppearance(); };
@@ -561,27 +711,34 @@ function bindButtons() {
     };
   });
 
-  document.getElementById("btn-how-to").onclick = () => {
+  bind("btn-how-to", () => {
     showModal("📖", "How to Play", "1. Read Sunny & Hoot's space scenario and make a trade-off choice.\n2. Play the hands-on mini-game (pump water, wipe Mars dust, flip breakers).\n3. Decorate your suit and flash Morse code to Voyager 1!");
-  };
+  });
 
-  document.getElementById("modal-overlay").onclick = (e) => {
-    if (e.target.id === "modal-overlay") document.getElementById("modal-overlay").classList.add("hidden");
-  };
-  document.getElementById("btn-modal-close").onclick = () => document.getElementById("modal-overlay").classList.add("hidden");
-
-  document.getElementById("btn-nasa-data").onclick = () => document.getElementById("data-modal").classList.remove("hidden");
-  document.getElementById("btn-close-data").onclick = () => document.getElementById("data-modal").classList.add("hidden");
+  const modalOverlay = document.getElementById("modal-overlay");
+  if (modalOverlay) {
+    modalOverlay.onclick = (e) => {
+      if (e.target.id === "modal-overlay") modalOverlay.classList.add("hidden");
+    };
+  }
+  bind("btn-modal-close", () => document.getElementById("modal-overlay")?.classList.add("hidden"));
+  bind("btn-nasa-data", () => document.getElementById("data-modal")?.classList.remove("hidden"));
+  bind("btn-close-data", () => document.getElementById("data-modal")?.classList.add("hidden"));
 }
 
-initGame();
-// Generate and Download Official PDF Certificate in Browser
+// Generate and Download Official PDF Certificate in Browser (using Saatvik's assets/)
+// Generate and Download Official PDF Certificate in Browser (using Saatvik's exact template)
+// Generate and Download Official PDF Certificate in Browser (using Saatvik's exact template)
 async function downloadMissionCertificate() {
+  if (!window.jspdf) {
+    alert("PDF library is still loading. Please try again in a second!");
+    return;
+  }
+
   const { jsPDF } = window.jspdf;
   const btn = document.getElementById("btn-download-cert");
   if (btn) btn.textContent = "⏳ Generating Certificate...";
 
-  // Helper to safely load local PNGs without crashing if Saatvik's files aren't added yet
   const loadImage = (src) => new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -590,48 +747,57 @@ async function downloadMissionCertificate() {
     img.src = src;
   });
 
-  // Create high-res landscape canvas (1100 x 750 px)
   const canvas = document.createElement("canvas");
   canvas.width = 1100;
   canvas.height = 750;
   const ctx = canvas.getContext("2d");
 
-  // 1. Draw Saatvik's Blank Template (or dark space fallback)
-  const bgImg = await loadImage("cert_template.png");
+  // 1. Draw Saatvik's specific certificate template from assets/ based on suit color
+  let templateFileName = "assets/cert_template1.png"; // Default White
+  if (state.suitColor === "orange") {
+    templateFileName = "assets/cert_template2.png"; // Orange Suit Template
+  } else if (state.suitColor === "blue") {
+    templateFileName = "assets/cert_template3.png"; // Blue Suit Template
+  }
+
+  const bgImg = await loadImage(templateFileName);
   if (bgImg) {
     ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
   } else {
     ctx.fillStyle = "#0f172a";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#eab308";
-    ctx.lineWidth = 8;
-    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
   }
 
-  // 2. Draw Recipient Name in Center
-  const playerName = state.playerName || "Sahana H Murthy";
+  // 2. Draw Player's Name in the Middle Blank Space (Right under "THIS IS TO CERTIFY THAT")
+  const playerName = state.playerName || "Commander Sunny";
   ctx.fillStyle = "#facc15";
-  ctx.font = "bold 42px sans-serif";
+  ctx.font = "bold 46px sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(playerName, canvas.width / 2, 310);
+  ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+  ctx.shadowBlur = 8;
+  ctx.fillText(playerName, canvas.width / 2, 425);
+  ctx.shadowBlur = 0; // Reset shadow
 
-  // 3. Draw Earned Mission Patches on the Left Side
-  const patchFiles = ["patch_artemis.png", "patch_jezero.png", "patch_voyager.png"];
-  for (let i = 0; i < patchFiles.length; i++) {
-    const patchImg = await loadImage(patchFiles[i]);
-    const yPos = 140 + (i * 170);
+  // 3. Place Earned Mission Patches neatly inside the White Circle on the Left
+  const patchFiles = ["assets/patch-artemis.png", "assets/patch-mars.png", "assets/patch-voyager.png"];
+  const unlocked = state.unlockedPatches.length > 0 ? state.unlockedPatches : [];
+
+  // If patches are earned, display them right in the white circle slot (X: 140, Y: 430)
+  if (unlocked.length > 0) {
+    // Show the most recently earned patch or cycle them
+    const latestPatch = patchFiles[Math.min(unlocked.length - 1, patchFiles.length - 1)];
+    const patchImg = await loadImage(latestPatch);
     if (patchImg) {
-      ctx.drawImage(patchImg, 75, yPos, 130, 130);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(140, 430, 68, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(patchImg, 72, 362, 136, 136);
+      ctx.restore();
     }
   }
 
-  // 4. Draw Customized Suit on the Right Side
-  const suitImg = await loadImage("custom_suit.png");
-  if (suitImg) {
-    ctx.drawImage(suitImg, canvas.width - 270, 160, 190, 390);
-  }
-
-  // 5. Export Canvas to Landscape PDF and Trigger Download
+  // 4. Export Canvas to Landscape PDF and Trigger Download
   const imgData = canvas.toDataURL("image/png");
   const doc = new jsPDF({
     orientation: "landscape",
@@ -640,7 +806,9 @@ async function downloadMissionCertificate() {
   });
 
   doc.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-  doc.save("Sunny_and_Hoot_Mission_Certificate.pdf");
+  doc.save("Curious_Cosmo_Mission_Certificate.pdf");
 
   if (btn) btn.textContent = "🏅 Download Official Mission Certificate (PDF)";
 }
+
+initGame();

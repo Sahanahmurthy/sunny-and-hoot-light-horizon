@@ -138,3 +138,21 @@ button:active { transform: translateY(1px); }
 .data-list { margin: 1rem 0 1rem 1.2rem; color: #cbd5e1; line-height: 1.5; }
 .data-list li { margin-bottom: 0.6rem; }
 .credit-note { font-size: 0.8rem; color: #94a3b8; }
+/* Real NASA LRO & Mars Trek Backgrounds */
+.moon-bg {
+  background-image: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/shackleton-lro.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+.mars-bg {
+  background-image: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/jezero-trek.webp") !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+.space-bg {
+  background-image: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), radial-gradient(circle at center, #1e293b 0%, #0f172a 100%) !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
