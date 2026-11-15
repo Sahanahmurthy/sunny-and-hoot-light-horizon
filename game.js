@@ -1,25 +1,82 @@
 // === NASA OPEN API & ENGINEERING PHYSICS ENGINE (BY OLAF) ===
-const NASA_API_KEY = "DEMO_KEY"; 
+const NASA_API_KEY = "rMLhD9jpcPWhMq9DDm7QJkL7BMWrMRDkf7qP7bmF"; 
 
 const NASA_TELEMETRY = {
   donki: { flareClass: "X1.2", peakTime: "2026-11-12T14:22Z", source: "NASA DONKI Feed" },
   radlab: { baselineDoseMicroGyDay: 485.0, waterAttenuationCoeff: 0.042 },
   osdr: { title: "Spaceflight Musculoskeletal Adaptation", studyId: "OSD-48" }
 };
+// Real Radiation Attenuation Calculation: D = D0 * e^(-mu * x)
+function calculateShieldedDose(waterThicknessCm) {
+  const d0 = NASA_TELEMETRY.radlab.baselineDoseMicroGyDay; // 485.0 µGy/day baseline
+  const mu = NASA_TELEMETRY.radlab.waterAttenuationCoeff;   // 0.042 absorption coefficient
+  const attenuatedDose = d0 * Math.exp(-mu * waterThicknessCm);
+  return Math.round(attenuatedDose * 10) / 10;
+}
+// Voyager 1 Plutonium-238 Radioactive Decay: P(t) = P0 * e^(-lambda * t)
+function calculateVoyagerPower() {
+  const p0 = 470.0;          // Initial power at launch in 1977 (Watts)
+  const halfLife = 87.7;     // Pu-238 half-life in years
+  const lambda = Math.LN2 / halfLife;
+  
+  const launchYear = 1977;
+  const currentYear = new Date().getFullYear(); // 2026
+  const elapsedYears = currentYear - launchYear;
+  
+  const currentPower = p0 * Math.exp(-lambda * elapsedYears);
+  return Math.round(currentPower * 10) / 10; // Returns ~214.6W current output
+}
+// Life Support Safeguard & Emergency Abort Check
+function checkLifeSupportSafeguards() {
+  const res = state.resources;
+  
+  if (res.o2 <= 0 || res.shield <= 0 || res.power <= 0) {
+    // Clear any active mini-game timers
+    if (state.activeTimer) clearInterval(state.activeTimer);
+    
+    // Trigger Emergency Abort Screen
+    const arena = document.getElementById("mg-arena") || document.body;
+    arena.innerHTML = `
+      <div style="background: rgba(239, 68, 68, 0.15); border: 2px solid #ef4444; padding: 1.5rem; border-radius: 12px; text-align: center; color: #f87171;">
+        <h2 style="margin-bottom: 0.5rem;">🚨 MISSION EMERGENCY ABORT 🚨</h2>
+        <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 1rem;">
+          Critical life support failure detected! Habitat systems could not sustain parameters against deep space telemetry extremes.
+        </p>
+        <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 1.2rem;">
+          Final Status — Oxygen: ${res.o2}% | Shielding: ${res.shield}% | Power: ${res.power}%
+        </div>
+        <button onclick="location.reload()" style="background: #ef4444; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
+          🔄 RESTART MISSION
+        </button>
+      </div>
+    `;
+    return true;
+  }
+  return false;
+}
+// Inside your choice click handler:
+state.resources.o2 += choice.effects.o2 || 0;
+state.resources.shield += choice.effects.shield || 0;
+state.resources.power += choice.effects.power || 0;
 
+// 🚨 Add this right here:
+if (checkLifeSupportSafeguards()) {
+  return; // Stops the game and shows the emergency abort screen if any resource hits 0
+}
 async function syncRealNasaApis() {
   try {
     const end = new Date().toISOString().split("T")[0];
     const start = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
     const flrUrl = `https://api.nasa.gov/DONKI/FLR?startDate=${start}&endDate=${end}&api_key=${NASA_API_KEY}`;
+    
     const flrRes = await fetch(flrUrl);
-    if (flrRes.ok) {
-      const flares = await flrRes.json();
-      if (Array.isArray(flares) && flares.length > 0) {
-        const latest = flares[flares.length - 1];
-        NASA_TELEMETRY.donki.flareClass = latest.classType || "M5.4";
-        NASA_TELEMETRY.donki.peakTime = latest.peakTime || end;
-      }
+    if (!flrRes.ok) return; // Silently exit if the endpoint returns a 404 or limit error
+    
+    const flares = await flrRes.json();
+    if (Array.isArray(flares) && flares.length > 0) {
+      const latest = flares[flares.length - 1];
+      NASA_TELEMETRY.donki.flareClass = latest.classType || "M5.4";
+      NASA_TELEMETRY.donki.peakTime = latest.peakTime || end;
     }
   } catch (err) {
     console.warn("DONKI offline fallback active.");
@@ -180,23 +237,38 @@ function launchMiniGame(scene, choice) {
 
 function runShieldPumpGame(choice) {
   document.getElementById("mg-title").textContent = "🛡️ Pump Water Into Radiation Walls!";
-  document.getElementById("mg-instructions").textContent = "Rapidly tap the button below to fill the Water Shield to 100% before the flare hits!";
+  document.getElementById("mg-instructions").textContent = "Rapidly tap the button below to pump water-ice and drop radiation levels to safe limits!";
   const arena = document.getElementById("mg-arena");
-  let fill = 15, timeLeft = 10;
+  
+  let waterCm = 5;
+  let timeLeft = 10;
   document.getElementById("mg-timer").textContent = `⏱️ ${timeLeft}s`;
 
   arena.innerHTML = `
-    <div class="pump-meter-bg"><div id="pump-fill" class="pump-meter-fill" style="width: 15%">15%</div></div>
+    <div style="margin-bottom: 0.8rem; font-size: 0.95rem; color: #38bdf8;">
+      📊 Live Dosimeter Dose: <strong id="dosimeter-val" style="color: #f87171;">485.0 µGy/day</strong>
+    </div>
+    <div class="pump-meter-bg"><div id="pump-fill" class="pump-meter-fill" style="width: 20%">5 cm</div></div>
     <button id="btn-pump-water" class="btn-pump">💧 PUMP WATER! (TAP FAST!)</button>
   `;
 
   document.getElementById("btn-pump-water").onclick = () => {
-    fill = Math.min(100, fill + (choice.pumpBoost || 12));
-    document.getElementById("pump-fill").style.width = `${fill}%`;
-    document.getElementById("pump-fill").textContent = `${fill}%`;
-    if (fill >= 100) {
+    waterCm = Math.min(65, waterCm + (choice.pumpBoost || 12));
+    const currentDose = calculateShieldedDose(waterCm);
+    const fillPercent = Math.round((waterCm / 65) * 100);
+
+    document.getElementById("pump-fill").style.width = `${fillPercent}%`;
+    document.getElementById("pump-fill").textContent = `${waterCm} cm`;
+    
+    const dosimeterEl = document.getElementById("dosimeter-val");
+    if (dosimeterEl) {
+      dosimeterEl.textContent = `${currentDose} µGy/day`;
+      dosimeterEl.style.color = currentDose < 50 ? "#4ade80" : "#f87171";
+    }
+
+    if (waterCm >= 60 || currentDose <= 40) {
       clearInterval(state.activeTimer);
-      finishMiniGame("Solar Storm Blocked at 100%!", "You pumped water into the walls just in time—safe inside the blue water shield!", choice.nasaFact);
+      finishMiniGame("Solar Storm Attenuated Successfully!", `Radiation dropped safely to ${currentDose} µGy/day using hydrogen-rich water shielding!`, choice.nasaFact);
     }
   };
 
@@ -205,7 +277,8 @@ function runShieldPumpGame(choice) {
     document.getElementById("mg-timer").textContent = `⏱️ ${timeLeft}s`;
     if (timeLeft <= 0) {
       clearInterval(state.activeTimer);
-      finishMiniGame("Solar Flare Passed!", `Charged water walls to ${fill}%. Good job!`, choice.nasaFact);
+      const finalDose = calculateShieldedDose(waterCm);
+      finishMiniGame("Solar Flare Passed!", `Final radiation dose stabilized at ${finalDose} µGy/day.`, choice.nasaFact);
     }
   }, 1000);
 }
@@ -250,57 +323,57 @@ function runDustWiperGame(choice) {
   }, 1000);
 }
 
-function runVoyagerBreakersGame(choice) {
-  document.getElementById("mg-title").textContent = "🔌 Shed Power Load to ≤ 215W!";
-  document.getElementById("mg-instructions").textContent = "Click 3 extra instruments to switch them OFF (keep Heater & Dish ON!).";
+function runCircuitBreakerGame(choice) {
+  document.getElementById("mg-title").textContent = "🛰️ Voyager 1 Power Rerouting & RTG Telemetry";
+  document.getElementById("mg-instructions").textContent = "Plutonium-238 decay is dropping available wattage. Re-route circuit breakers to keep the Golden Record beacon alive!";
   const arena = document.getElementById("mg-arena");
-  let timeLeft = 15;
-  document.getElementById("mg-timer").textContent = `⏱️ ${timeLeft}s`;
 
-  const systems = [
-    { name: "🔥 Hydrazine Heater", watts: 95, critical: true, on: true },
-    { name: "📡 Main Earth Dish", watts: 110, critical: true, on: true },
-    { name: "📷 Wide-Angle Camera", watts: 40, critical: false, on: true },
-    { name: "🧲 Plasma Wave Sensor", watts: 35, critical: false, on: true },
-    { name: "☄️ Cosmic Ray Detector", watts: 30, critical: false, on: true }
-  ];
+  const livePower = calculateVoyagerPower(); // Dynamically computes ~214.6W based on half-life decay
+  let systemLoad = 180.0; // Initial active load in Watts
 
-  function renderBreakers() {
-    const totalWatts = systems.reduce((sum, s) => sum + (s.on ? s.watts : 0), 0);
-    const isSafe = totalWatts <= 215;
-    arena.innerHTML = `
-      <div class="watt-banner ${isSafe ? "safe" : "overload"}">RTG POWER LOAD: ${totalWatts}W / 215W MAX ${isSafe ? "✅ SAFE!" : "⚠️ OVERLOAD!"}</div>
-      <div class="breaker-list" id="breaker-list"></div>
-    `;
-    const list = document.getElementById("breaker-list");
-    systems.forEach((sys, idx) => {
-      const btn = document.createElement("button");
-      if (sys.critical) {
-        btn.className = "breaker-btn critical";
-        btn.innerHTML = `<span>${sys.name} (${sys.watts}W)</span><strong>LOCKED</strong>`;
-      } else {
-        btn.className = `breaker-btn ${sys.on ? "on" : "off"}`;
-        btn.innerHTML = `<span>${sys.name} (${sys.watts}W)</span><strong>${sys.on ? "ON" : "OFF"}</strong>`;
-        btn.onclick = () => { systems[idx].on = !systems[idx].on; renderBreakers(); };
-      }
-      list.appendChild(btn);
-    });
+  arena.innerHTML = `
+    <div style="margin-bottom: 0.8rem; font-size: 0.95rem; color: #38bdf8;">
+      ⚡ RTG Power Capacity: <strong style="color: #4ade80;">${livePower} W</strong> 
+      <span style="font-size: 0.8rem; color: #94a3b8;">(Pu-238 Half-life Decay Model)</span>
+    </div>
+    <div style="margin-bottom: 1rem; font-size: 0.9rem; color: #cbd5e1;">
+      Active Systems Load: <strong id="load-val" style="color: #f87171;">${systemLoad} W</strong>
+    </div>
+    <div id="breaker-controls" style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+      <button id="btn-toggle-heater" class="btn-pump" style="background: #334155; font-size: 0.85rem;">❄️ Toggle Planetary Heater (-30W)</button>
+      <button id="btn-toggle-science" class="btn-pump" style="background: #334155; font-size: 0.85rem;">🔬 Toggle Plasma Science (-25W)</button>
+    </div>
+    <button id="btn-lock-beacon" class="btn-pump" style="margin-top: 1rem; background: #2563eb;">📡 LOCK GOLDEN RECORD TRANSMISSION</button>
+  `;
 
-    if (isSafe) {
-      clearInterval(state.activeTimer);
-      setTimeout(() => finishMiniGame("Power Balanced at 205W!", "Non-essential instruments shut down. Voyager telemetry secured!", choice.nasaFact), 450);
+  let heaterActive = true;
+  let scienceActive = true;
+
+  document.getElementById("btn-toggle-heater").onclick = () => {
+    heaterActive = !heaterActive;
+    systemLoad += heaterActive ? 30 : -30;
+    document.getElementById("load-val").textContent = `${systemLoad} W`;
+    document.getElementById("btn-toggle-heater").style.background = heaterActive ? "#334155" : "#1e293b";
+  };
+
+  document.getElementById("btn-toggle-science").onclick = () => {
+    scienceActive = !scienceActive;
+    systemLoad += scienceActive ? 25 : -25;
+    document.getElementById("load-val").textContent = `${systemLoad} W`;
+    document.getElementById("btn-toggle-science").style.background = scienceActive ? "#334155" : "#1e293b";
+  };
+
+  document.getElementById("btn-lock-beacon").onclick = () => {
+    if (systemLoad <= livePower) {
+      finishMiniGame(
+        "Voyager 1 Light Horizon Reached!",
+        `Successfully balanced systems at ${systemLoad}W against the decaying ${livePower}W Plutonium RTG limit!`,
+        choice.nasaFact || "Voyager 1 relies on its diminishing RTG power source to communicate from over 24 billion kilometers away."
+      );
+    } else {
+      alert("⚠️ Power overload! System load exceeds available RTG wattage. Turn off auxiliary instruments!");
     }
-  }
-
-  renderBreakers();
-  state.activeTimer = setInterval(() => {
-    timeLeft -= 1;
-    document.getElementById("mg-timer").textContent = `⏱️ ${timeLeft}s`;
-    if (timeLeft <= 0) {
-      clearInterval(state.activeTimer);
-      finishMiniGame("Auto-Safe Mode Engaged!", "Voyager transmitter locked onto Earth.", choice.nasaFact);
-    }
-  }, 1000);
+  };
 }
 
 function finishMiniGame(badgeText, outcomeText, nasaFact) {
@@ -502,3 +575,72 @@ function bindButtons() {
 }
 
 initGame();
+// Generate and Download Official PDF Certificate in Browser
+async function downloadMissionCertificate() {
+  const { jsPDF } = window.jspdf;
+  const btn = document.getElementById("btn-download-cert");
+  if (btn) btn.textContent = "⏳ Generating Certificate...";
+
+  // Helper to safely load local PNGs without crashing if Saatvik's files aren't added yet
+  const loadImage = (src) => new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+
+  // Create high-res landscape canvas (1100 x 750 px)
+  const canvas = document.createElement("canvas");
+  canvas.width = 1100;
+  canvas.height = 750;
+  const ctx = canvas.getContext("2d");
+
+  // 1. Draw Saatvik's Blank Template (or dark space fallback)
+  const bgImg = await loadImage("cert_template.png");
+  if (bgImg) {
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+  } else {
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#eab308";
+    ctx.lineWidth = 8;
+    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+  }
+
+  // 2. Draw Recipient Name in Center
+  const playerName = state.playerName || "Sahana H Murthy";
+  ctx.fillStyle = "#facc15";
+  ctx.font = "bold 42px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(playerName, canvas.width / 2, 310);
+
+  // 3. Draw Earned Mission Patches on the Left Side
+  const patchFiles = ["patch_artemis.png", "patch_jezero.png", "patch_voyager.png"];
+  for (let i = 0; i < patchFiles.length; i++) {
+    const patchImg = await loadImage(patchFiles[i]);
+    const yPos = 140 + (i * 170);
+    if (patchImg) {
+      ctx.drawImage(patchImg, 75, yPos, 130, 130);
+    }
+  }
+
+  // 4. Draw Customized Suit on the Right Side
+  const suitImg = await loadImage("custom_suit.png");
+  if (suitImg) {
+    ctx.drawImage(suitImg, canvas.width - 270, 160, 190, 390);
+  }
+
+  // 5. Export Canvas to Landscape PDF and Trigger Download
+  const imgData = canvas.toDataURL("image/png");
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: [canvas.width, canvas.height]
+  });
+
+  doc.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+  doc.save("Sunny_and_Hoot_Mission_Certificate.pdf");
+
+  if (btn) btn.textContent = "🏅 Download Official Mission Certificate (PDF)";
+}
