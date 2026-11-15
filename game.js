@@ -225,6 +225,7 @@ function startStory() {
 function renderScene() {
   const scene = STORY_SCENES[state.sceneIdx];
   document.getElementById("chapter-label").textContent = scene.chapter;
+  document.getElementById("speaker-name").textContent = scene.speaker;
   document.getElementById("stat-delay").textContent = scene.delay;
   updateStatsUI();
 
