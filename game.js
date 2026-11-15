@@ -597,18 +597,18 @@ function updateLiveVoyagerTelemetry() {
   const diffSec = (Date.now() - milestoneUtc) / 1000;
   const currentMiles = 16092000000 + (diffSec * 10.56);
   const lightSeconds = 86400 + (diffSec * (10.56 / 186282));
+
   const hrs = Math.floor(lightSeconds / 3600);
   const mins = Math.floor((lightSeconds % 3600) / 60);
-  const secs = Math.floor(lightSeconds % 60);
+  const secs = (lightSeconds % 60).toFixed(5).padStart(8, "0");
 
   const distEl = document.getElementById("voyager-distance");
   const timeEl = document.getElementById("voyager-light-time");
   if (distEl && timeEl) {
-    distEl.textContent = `${Math.round(currentMiles).toLocaleString()} miles`;
-    timeEl.textContent = `${hrs}h ${String(mins).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`;
+    distEl.textContent = `${Math.round(currentMiles).toLocaleString("en-US")} miles`;
+    timeEl.textContent = `${hrs}h ${String(mins).padStart(2, "0")}m ${secs}s`;
   }
 }
-
 async function transmitVGRMorse() {
   const btn = document.getElementById("btn-shine-vgr");
   const display = document.getElementById("morse-display");
