@@ -23,9 +23,6 @@ button:active { transform: translateY(1px); }
 .story-card { background: #11192e; border: 1px solid #2b3d63; border-radius: 20px; padding: 1.5rem; box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45); }
 
 .scene-art { height: 165px; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; margin-bottom: 1.1rem; border: 1px solid rgba(255, 255, 255, 0.12); }
-.moon-bg { background: linear-gradient(135deg, #1e293b 0%, #334155 60%, #475569 100%); }
-.mars-bg { background: linear-gradient(135deg, #451a1a 0%, #7f1d1d 55%, #b45309 100%); }
-.space-bg { background: linear-gradient(135deg, #090d16 0%, #1e1b4b 60%, #312e81 100%); }
 
 .floating-crew { font-size: 3.6rem; animation: floatHero 2.8s ease-in-out infinite; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5)); }
 @keyframes floatHero { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-9px); } }
@@ -138,21 +135,21 @@ button:active { transform: translateY(1px); }
 .data-list { margin: 1rem 0 1rem 1.2rem; color: #cbd5e1; line-height: 1.5; }
 .data-list li { margin-bottom: 0.6rem; }
 .credit-note { font-size: 0.8rem; color: #94a3b8; }
-/* Real NASA LRO & Mars Trek Backgrounds */
+
 .moon-bg {
-  background-image: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/shackleton-lro.jpg") !important;
+  background-image: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/shackleton-iro.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
 }
 
 .mars-bg {
-  background-image: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/jezero-trek.webp") !important;
+  background-image: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/jezero-trek.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
 }
 
 .space-bg {
-  background-image: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), radial-gradient(circle at center, #1e293b 0%, #0f172a 100%) !important;
+  background-image: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/space-bg.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
 }

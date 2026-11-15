@@ -60,7 +60,6 @@ async function syncRealNasaApis() {
   let donkiLive = false;
   let osdrLive = false;
 
-  // 1. Live NASA DONKI Solar Flare API (30-day window)
   try {
     const end = new Date().toISOString().split("T")[0];
     const start = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
@@ -80,7 +79,6 @@ async function syncRealNasaApis() {
     console.warn("DONKI fallback telemetry active:", err);
   }
 
-  // 2. Live NASA OSDR Biological Study Metadata API (Study OSD-48)
   try {
     const osdrUrl = "https://osdr.nasa.gov/osdr/data/osd/meta/48";
     const osdrRes = await fetch(osdrUrl);
@@ -96,7 +94,6 @@ async function syncRealNasaApis() {
     console.warn("OSDR fallback metadata active:", err);
   }
 
-  // Update Top Live Telemetry Banner
   if (statusEl) {
     statusEl.innerHTML = `
       ${donkiLive ? "🟢" : "🟡"} <strong>NASA DONKI:</strong> Flare ${NASA_TELEMETRY.donki.flareClass} &nbsp;|&nbsp;
@@ -232,10 +229,32 @@ function renderScene() {
   updateStatsUI();
 
   const art = document.getElementById("scene-art");
-  if (art) art.className = `scene-art ${scene.bgClass}`;
-  document.getElementById("scene-emoji").textContent = scene.emoji;
+  if (art) {
+    art.className = `scene-art ${scene.bgClass}`;
+    if (state.sceneIdx === 0) {
+      art.style.backgroundImage = `linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/shackleton-iro.jpg")`;
+      art.style.backgroundSize = "cover";
+      art.style.backgroundPosition = "center";
+    } else if (state.sceneIdx === 1) {
+      art.style.backgroundImage = `linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/jezero-trek.jpg")`;
+      art.style.backgroundSize = "cover";
+      art.style.backgroundPosition = "center";
+    } else {
+      art.style.backgroundImage = `linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.82)), url("assets/space-bg.jpg")`;
+      art.style.backgroundSize = "cover";
+      art.style.backgroundPosition = "center";
+    }
+  }
+
   document.getElementById("scene-banner").textContent = scene.caption;
-  document.getElementById("speaker-name").textContent = scene.speaker;
+
+  const emojiEl = document.getElementById("scene-emoji");
+  if (emojiEl) {
+    emojiEl.innerHTML = `
+      <img src="assets/sunny.png" alt="Sunny" style="width: 55px; height: 55px; object-fit: contain; border-radius: 50%; border: 2px solid #38bdf8; background: rgba(15,23,42,0.8);" />
+      <img src="assets/hoot.png" alt="Hoot" style="width: 55px; height: 55px; object-fit: contain; border-radius: 50%; border: 2px solid #facc15; margin-left: -12px; background: rgba(15,23,42,0.8);" />
+    `;
+  }
 
   const storyEl = document.getElementById("story-text");
   if (state.sceneIdx === 0) {
@@ -544,19 +563,19 @@ function renderSuitAppearance() {
   const suitEl = document.getElementById("spacesuit-figure");
   if (suitEl) {
     suitEl.className = `spacesuit ${state.suitColor}`;
-    if (state.suitColor === "orange") {
-      suitEl.style.backgroundImage = `url("assets/suit-orange.png")`;
-      suitEl.style.backgroundSize = "contain";
-      suitEl.style.backgroundRepeat = "no-repeat";
-      suitEl.style.backgroundPosition = "center";
-    } else if (state.suitColor === "white") {
-      suitEl.style.backgroundImage = `url("assets/suit-white.png")`;
-      suitEl.style.backgroundSize = "contain";
-      suitEl.style.backgroundRepeat = "no-repeat";
-      suitEl.style.backgroundPosition = "center";
-    } else {
-      suitEl.style.backgroundImage = "none";
-    }
+    let suitImg = "assets/suit-white.png";
+    if (state.suitColor === "orange") suitImg = "assets/suit-orange.png";
+    else if (state.suitColor === "blue") suitImg = "assets/suit-blue.png";
+
+    suitEl.style.backgroundImage = `url("${suitImg}")`;
+    suitEl.style.backgroundSize = "contain";
+    suitEl.style.backgroundRepeat = "no-repeat";
+    suitEl.style.backgroundPosition = "center";
+  }
+
+  const perchEl = document.querySelector(".owl-perch");
+  if (perchEl) {
+    perchEl.innerHTML = `<img src="assets/hoot.png" alt="Hoot" style="width: 45px; height: 45px; object-fit: contain; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));" />`;
   }
 
   document.querySelectorAll(".patch-slot").forEach(slotBtn => {
@@ -726,9 +745,6 @@ function bindButtons() {
   bind("btn-close-data", () => document.getElementById("data-modal")?.classList.add("hidden"));
 }
 
-// Generate and Download Official PDF Certificate in Browser (using Saatvik's assets/)
-// Generate and Download Official PDF Certificate in Browser (using Saatvik's exact template)
-// Generate and Download Official PDF Certificate in Browser (using Saatvik's exact template)
 async function downloadMissionCertificate() {
   if (!window.jspdf) {
     alert("PDF library is still loading. Please try again in a second!");
@@ -752,12 +768,11 @@ async function downloadMissionCertificate() {
   canvas.height = 750;
   const ctx = canvas.getContext("2d");
 
-  // 1. Draw Saatvik's specific certificate template from assets/ based on suit color
-  let templateFileName = "assets/cert_template1.png"; // Default White
+  let templateFileName = "assets/cert_template1.png";
   if (state.suitColor === "orange") {
-    templateFileName = "assets/cert_template2.png"; // Orange Suit Template
+    templateFileName = "assets/cert_template2.png";
   } else if (state.suitColor === "blue") {
-    templateFileName = "assets/cert_template3.png"; // Blue Suit Template
+    templateFileName = "assets/cert_template3.png";
   }
 
   const bgImg = await loadImage(templateFileName);
@@ -768,36 +783,81 @@ async function downloadMissionCertificate() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // 2. Draw Player's Name in the Middle Blank Space (Right under "THIS IS TO CERTIFY THAT")
+  // 1. Player Name: Positioned at y = 315 to sit cleanly on the line
   const playerName = state.playerName || "Commander Sunny";
   ctx.fillStyle = "#facc15";
-  ctx.font = "bold 46px sans-serif";
+  ctx.font = "bold 38px sans-serif";
   ctx.textAlign = "center";
-  ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8;
-  ctx.fillText(playerName, canvas.width / 2, 425);
-  ctx.shadowBlur = 0; // Reset shadow
+  ctx.fillText(playerName, canvas.width / 2, 305);
+  ctx.shadowBlur = 0;
 
-  // 3. Place Earned Mission Patches neatly inside the White Circle on the Left
-  const patchFiles = ["assets/patch-artemis.png", "assets/patch-mars.png", "assets/patch-voyager.png"];
+  // 2. Draw ALL Earned Mission Patches: Centered inside the white circle moon (x: 162, y: 375)
   const unlocked = state.unlockedPatches.length > 0 ? state.unlockedPatches : [];
-
-  // If patches are earned, display them right in the white circle slot (X: 140, Y: 430)
   if (unlocked.length > 0) {
-    // Show the most recently earned patch or cycle them
-    const latestPatch = patchFiles[Math.min(unlocked.length - 1, patchFiles.length - 1)];
-    const patchImg = await loadImage(latestPatch);
-    if (patchImg) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(140, 430, 68, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.drawImage(patchImg, 72, 362, 136, 136);
-      ctx.restore();
+    const count = unlocked.length;
+    const moonCenterX = 162; 
+    const moonCenterY = 375; 
+
+    if (count === 1) {
+      const patchSize = 120;
+      const patchImg = await loadImage(unlocked[0].image);
+      if (patchImg) {
+        const px = moonCenterX - (patchSize / 2);
+        const py = moonCenterY - (patchSize / 2);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(moonCenterX, moonCenterY, patchSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(patchImg, px, py, patchSize, patchSize);
+        ctx.restore();
+      }
+    } else if (count === 2) {
+      const patchSize = 95;
+      const spacing = 12;
+      const totalWidth = (2 * patchSize) + spacing;
+      const startX = moonCenterX - (totalWidth / 2);
+      const py = moonCenterY - (patchSize / 2);
+
+      for (let i = 0; i < 2; i++) {
+        const patchImg = await loadImage(unlocked[i].image);
+        if (patchImg) {
+          const px = startX + (i * (patchSize + spacing));
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(px + patchSize / 2, moonCenterY, patchSize / 2, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(patchImg, px, py, patchSize, patchSize);
+          ctx.restore();
+        }
+      }
+    } else {
+      const patchSize = 100; 
+      const verticalOffset = 35;
+      const horizontalOffset = 48;
+
+      const positions = [
+        { x: moonCenterX, y: moonCenterY - verticalOffset },                    // Top vertex
+        { x: moonCenterX - horizontalOffset, y: moonCenterY + verticalOffset },  // Bottom-left vertex
+        { x: moonCenterX + horizontalOffset, y: moonCenterY + verticalOffset }   // Bottom-right vertex
+      ];
+
+      for (let i = 0; i < Math.min(3, count); i++) {
+        const patchImg = await loadImage(unlocked[i].image);
+        if (patchImg) {
+          const pos = positions[i];
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, patchSize / 2, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(patchImg, pos.x - patchSize / 2, pos.y - patchSize / 2, patchSize, patchSize);
+          ctx.restore();
+        }
+      }
     }
   }
 
-  // 4. Export Canvas to Landscape PDF and Trigger Download
   const imgData = canvas.toDataURL("image/png");
   const doc = new jsPDF({
     orientation: "landscape",
